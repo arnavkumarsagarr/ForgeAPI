@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CoreForge Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#12151A; --panel:#181C24; --panel2:#1D222B; --border:#2A2F3A;
+    --text:#E7E9EE; --muted:#8B92A3; --accent:#4FA8A0; --accent2:#C9A227;
+    --danger:#D9705A; --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'Inter',system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F5F4F0; --panel:#FFFFFF; --panel2:#F0EFEA; --border:#DAD8D0;
+      --text:#1B1D22; --muted:#6B7080;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F4F0; --panel:#FFFFFF; --panel2:#F0EFEA; --border:#DAD8D0;
+    --text:#1B1D22; --muted:#6B7080;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+  header{padding:20px clamp(16px,4vw,48px); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .brand h1{margin:0; font-size:1.5rem; font-weight:700; letter-spacing:-0.01em;}
+  .brand h1 span{color:var(--accent); font-family:var(--mono);}
+  .brand p{margin:4px 0 0; color:var(--muted); font-size:0.92rem;}
+  .identity{display:flex; align-items:center; gap:10px; font-size:0.85rem;}
+  .identity .avatar{width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--panel2);}
+  .identity .who{display:flex; flex-direction:column; line-height:1.25;}
+  .identity .who b{font-weight:600;}
+  .identity .who small{color:var(--muted); font-family:var(--mono); font-size:0.72rem;}
+  .stat-strip{display:flex; gap:22px; flex-wrap:wrap; padding:12px clamp(16px,4vw,48px);
+    border-bottom:1px solid var(--border); background:var(--panel); font-family:var(--mono); font-size:0.76rem; color:var(--muted);}
+  .stat-strip b{color:var(--text); font-family:var(--sans); font-weight:700;}
+  main{max-width:1240px; margin:0 auto; padding:28px clamp(16px,4vw,48px) 60px;
+    display:grid; grid-template-columns: minmax(280px,360px) 1fr; gap:24px;}
+  @media (max-width:820px){ main{grid-template-columns:1fr;} }
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:20px;}
+  label{display:block; font-size:0.82rem; color:var(--muted); margin:16px 0 6px; font-family:var(--mono);}
+  label:first-of-type{margin-top:0;}
+  textarea, select{width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    border-radius:4px; padding:10px 12px; font-family:var(--sans); font-size:0.94rem; resize:vertical;}
+  textarea:focus, select:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  textarea{min-height:90px;}
+  .stack-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;}
+  .stack-opt{border:1px solid var(--border); border-radius:4px; padding:10px; cursor:pointer;
+    font-size:0.85rem; text-align:left; background:var(--panel2); color:var(--text);}
+  .stack-opt.active{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent);}
+  .stack-opt .name{font-weight:600; display:block;}
+  .stack-opt .sub{color:var(--muted); font-size:0.76rem; font-family:var(--mono);}
+  .feat-list{display:flex; flex-direction:column; gap:8px; margin-top:6px;}
+  .feat-list label{display:flex; align-items:center; gap:8px; margin:0; font-family:var(--sans); font-size:0.88rem; color:var(--text); cursor:pointer;}
+  .feat-list input{width:auto;}
+  button.primary{margin-top:22px; width:100%; background:var(--accent); color:#0C1210; border:none;
+    padding:12px; border-radius:4px; font-weight:700; font-size:0.95rem; cursor:pointer; font-family:var(--sans);}
+  button.primary:disabled{opacity:0.5; cursor:default;}
+  button.primary:hover:not(:disabled){filter:brightness(1.08);}
+  button.ghost{background:transparent; border:1px solid var(--border); color:var(--text); padding:8px 10px;
+    border-radius:4px; font-size:0.78rem; cursor:pointer; font-family:var(--sans);}
+  button.ghost:hover{border-color:var(--accent); color:var(--accent);}
+  .history{margin-top:22px; border-top:1px solid var(--border); padding-top:14px;}
+  .history h3{margin:0 0 10px; font-size:0.78rem; color:var(--muted); font-family:var(--mono); font-weight:500;}
+  .hist-item{display:flex; justify-content:space-between; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.82rem;}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-item button{background:none; border:none; color:var(--text); text-align:left; cursor:pointer; padding:0; font-family:var(--sans); font-size:0.82rem; flex:1;}
+  .hist-item button:hover{color:var(--accent);}
+  .hist-item .del{color:var(--muted); font-size:0.75rem; flex:none; background:none; border:none; cursor:pointer;}
+  .hist-item .del:hover{color:var(--danger);}
+  .hist-empty{color:var(--muted); font-size:0.8rem; font-family:var(--mono);}
+  .output-panel{min-height:420px; display:flex; flex-direction:column;}
+  .tabs{display:flex; gap:2px; overflow-x:auto; border-bottom:1px solid var(--border);}
+  .tab{padding:9px 14px; font-family:var(--mono); font-size:0.78rem; color:var(--muted); cursor:pointer;
+    border:1px solid transparent; border-bottom:none; white-space:nowrap; border-radius:4px 4px 0 0; display:flex; gap:6px; align-items:center;}
+  .tab.active{color:var(--text); background:var(--panel2); border-color:var(--border);}
+  .tab .ico{color:var(--accent2); font-size:0.7rem;}
+  .code-wrap{flex:1; background:var(--panel2); border:1px solid var(--border); border-top:none; border-radius:0 0 4px 4px; overflow:auto;}
+  pre{margin:0; padding:16px; font-family:var(--mono); font-size:0.82rem; line-height:1.55; white-space:pre; overflow-x:auto;}
+  .actions{display:flex; gap:8px; padding:10px; border-top:1px solid var(--border); flex-wrap:wrap;}
+  .refine{display:flex; gap:8px; padding:10px; border-top:1px solid var(--border);}
+  .refine input{flex:1; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:4px; padding:8px 10px; font-size:0.85rem; font-family:var(--sans);}
+  .refine input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .empty{display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:380px; color:var(--muted); text-align:center; padding:20px;}
+  .empty .glyph{font-family:var(--mono); font-size:2.2rem; color:var(--accent2); margin-bottom:10px;}
+  .status{font-family:var(--mono); font-size:0.8rem; color:var(--accent); margin-top:14px; min-height:1.2em;}
+  .toasts{position:fixed; bottom:16px; right:16px; display:flex; flex-direction:column; gap:8px; z-index:50;
+    padding-bottom:env(safe-area-inset-bottom,0px);}
+  .toast{background:var(--panel); border:1px solid var(--border); color:var(--text); padding:10px 14px;
+    border-radius:5px; font-size:0.82rem; box-shadow:0 4px 14px rgba(0,0,0,0.25); animation:toastin 0.18s ease-out;}
+  .toast.err{border-color:var(--danger); color:var(--danger);}
+  @keyframes toastin{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  footer{text-align:center; color:var(--muted); font-size:0.78rem; padding:20px; font-family:var(--mono);}
+
+  #app{display:none;}
+  .land-bg{position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 12% -10%, rgba(79,168,160,0.20), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(201,162,39,0.14), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(79,168,160,0.08), transparent 50%),
+      linear-gradient(160deg, var(--bg) 0%, #10141A 55%, #0E1116 100%);}
+  :root[data-theme="light"] .land-bg{
+    background:
+      radial-gradient(circle at 12% -10%, rgba(79,168,160,0.14), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(201,162,39,0.10), transparent 42%),
+      linear-gradient(160deg, var(--bg) 0%, #EDEBE3 100%);}
+  @media (prefers-color-scheme:light){
+    :root:not([data-theme="dark"]) .land-bg{
+      background:
+        radial-gradient(circle at 12% -10%, rgba(79,168,160,0.14), transparent 45%),
+        radial-gradient(circle at 90% 10%, rgba(201,162,39,0.10), transparent 42%),
+        linear-gradient(160deg, var(--bg) 0%, #EDEBE3 100%);}
+  }
+  .orb{position:absolute; border-radius:50%; filter:blur(60px); opacity:0.55; pointer-events:none; z-index:0;}
+  .orb1{width:340px; height:340px; background:var(--accent); top:-80px; left:-60px;}
+  .orb2{width:260px; height:260px; background:var(--accent2); top:120px; right:-40px; opacity:0.35;}
+  #landing{position:relative; z-index:1; max-width:1320px; margin:0 auto; padding:clamp(40px,7vw,100px) clamp(20px,4vw,56px) 70px;}
+  .hero-grid{display:grid; grid-template-columns:1.05fr 0.95fr; gap:64px; align-items:center; margin-bottom:72px; min-height:56vh;}
+  @media (max-width:900px){ .hero-grid{grid-template-columns:1fr; min-height:auto;} }
+  .land-kicker{font-family:var(--mono); font-size:0.78rem; color:var(--accent); letter-spacing:0.03em; margin-bottom:14px;}
+  #landing h1{font-size:clamp(2.1rem,5vw,3.3rem); line-height:1.1; margin:0 0 20px; font-weight:700; letter-spacing:-0.02em; max-width:14ch;}
+  #landing h1 em{font-style:normal; color:var(--accent);}
+  .cap-row{display:flex; flex-wrap:wrap; gap:10px; margin:0 0 30px;}
+  .cap-pill{display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:20px; padding:6px 13px 6px 10px;
+    font-family:var(--mono); font-size:0.74rem; color:var(--muted); background:rgba(255,255,255,0.02);}
+  .cap-pill svg{flex:none;}
+  .cta-row{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .cta-row button{font-family:var(--sans); font-size:0.95rem; font-weight:600; border-radius:4px; padding:12px 20px; cursor:pointer;}
+  .cta-primary{background:var(--accent); color:#0C1210; border:none;}
+  .cta-primary:hover{filter:brightness(1.08); transform:translateY(-1px);}
+  .cta-secondary{background:transparent; color:var(--text); border:1px solid var(--border);}
+  .cta-secondary:hover{border-color:var(--accent); color:var(--accent);}
+  .honesty-line{display:flex; align-items:flex-start; gap:8px; font-family:var(--mono); font-size:0.74rem; color:var(--muted); max-width:46ch;}
+  .honesty-line svg{flex:none; margin-top:2px;}
+
+  .section-head{display:flex; align-items:center; gap:10px; margin:0 0 26px;}
+  .section-head svg{flex:none;}
+  .section-head h2{font-size:0.95rem; color:var(--text); font-weight:700; margin:0;}
+  .steps-block{margin-bottom:64px;}
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:22px;}
+  .step{border-left:2px solid var(--border); padding-left:16px; transition:border-color 0.5s ease;}
+  .steps-block.in-view .step:nth-child(1){border-color:var(--accent); transition-delay:0.05s;}
+  .steps-block.in-view .step:nth-child(2){border-color:var(--accent); transition-delay:0.22s;}
+  .steps-block.in-view .step:nth-child(3){border-color:var(--accent); transition-delay:0.39s;}
+  .steps-block.in-view .step:nth-child(4){border-color:var(--accent); transition-delay:0.56s;}
+  .step .n{font-family:var(--mono); color:var(--accent2); font-size:0.78rem;}
+  .step p{margin:6px 0 0; font-size:0.88rem; color:var(--muted); line-height:1.5;}
+
+  .get-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px;}
+  .get-card{border:1px solid var(--border); border-radius:8px; padding:18px; background:rgba(255,255,255,0.015);
+    opacity:0; transform:translateY(14px); transition:opacity 0.55s ease, transform 0.55s ease, border-color 0.25s ease;}
+  .get-card:hover{border-color:var(--accent);}
+  .get-grid.in-view .get-card{opacity:1; transform:translateY(0);}
+  .get-grid.in-view .get-card:nth-child(1){transition-delay:0.04s;}
+  .get-grid.in-view .get-card:nth-child(2){transition-delay:0.12s;}
+  .get-grid.in-view .get-card:nth-child(3){transition-delay:0.20s;}
+  .get-grid.in-view .get-card:nth-child(4){transition-delay:0.28s;}
+  .get-grid.in-view .get-card:nth-child(5){transition-delay:0.36s;}
+  .get-grid.in-view .get-card:nth-child(6){transition-delay:0.44s;}
+  .get-card svg{margin-bottom:12px;}
+  .get-card b{display:block; font-size:0.92rem; margin-bottom:4px;}
+  .get-card span{display:block; font-size:0.78rem; color:var(--muted); line-height:1.4;}
+
+  .preview-card{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px;}
+  .typewriter-line{font-family:var(--mono); font-size:0.86rem; color:var(--accent); min-height:2.6em; line-height:1.4; margin-bottom:14px;}
+  .typewriter-line .cursor{display:inline-block; width:7px; height:1em; background:var(--accent); vertical-align:text-bottom; animation:blink 0.9s steps(1) infinite; margin-left:1px;}
+  @keyframes blink{50%{opacity:0;}}
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;}
+  .chip{border:1px solid var(--border); border-radius:20px; padding:5px 12px; font-size:0.72rem; font-family:var(--sans); color:var(--muted); cursor:pointer; background:var(--panel2);}
+  .chip.active{color:var(--text); border-color:var(--accent); background:transparent;}
+  .chip:hover{color:var(--text);}
+  .pc-tree{min-height:150px; border-top:1px solid var(--border); padding-top:12px;}
+  .pc-tree div{padding:2px 0; font-size:0.8rem; font-family:var(--mono); color:var(--text); opacity:0; transform:translateX(-6px); animation:fileIn 0.35s ease forwards;}
+  @keyframes fileIn{to{opacity:1; transform:translateX(0);}}
+  .pc-caption{margin-top:12px; font-size:0.72rem; color:var(--muted); font-family:var(--sans); border-top:1px solid var(--border); padding-top:10px;}
+
+  .splash{position:fixed; inset:0; background:var(--bg); z-index:200; display:flex; align-items:center; justify-content:center;
+    transition:opacity 0.7s ease, visibility 0.7s ease;}
+  .splash.hide{opacity:0; visibility:hidden; pointer-events:none;}
+  .splash-mark{width:74px; height:74px; animation:markPulse 1.7s ease-in-out infinite;}
+  @keyframes markPulse{0%,100%{opacity:0.82; transform:scale(1);} 50%{opacity:1; transform:scale(1.06);}}
+
+  .logo-mark{display:block; flex:none;}
+  .brand-row{display:flex; align-items:center; gap:10px;}
+
+  .reveal{opacity:0; transform:translateY(16px); transition:opacity 0.6s ease, transform 0.6s ease;}
+  .reveal.in-view{opacity:1; transform:translateY(0);}
+
+  .land-bg.leaving{opacity:0; transform:translateY(-14px); transition:opacity 0.4s ease, transform 0.4s ease;}
+  #app.entering{animation:appIn 0.55s ease both;}
+  @keyframes appIn{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);}}
+
+  .tab, .stack-opt, button{transition:border-color 0.2s ease, color 0.2s ease, filter 0.2s ease, transform 0.2s ease;}
+  .stack-opt:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .empty .logo-mark{width:56px; height:56px; margin:0 auto 14px; opacity:0.75;}
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <svg class="splash-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <path d="M46 12 A24 24 0 1 0 46 52" fill="none" stroke="#4FA8A0" stroke-width="6" stroke-linecap="square"/>
+    <rect x="26" y="26" width="12" height="12" fill="#C9A227"/>
+  </svg>
+</div>
+<div class="land-bg">
+<div class="orb orb1" id="orb1"></div>
+<div class="orb orb2" id="orb2"></div>
+<section id="landing">
+  <div class="hero-grid">
+    <div class="hero-left">
+      <div class="brand-row" style="margin-bottom:14px;">
+        <svg class="logo-mark" width="26" height="26" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <path d="M46 12 A24 24 0 1 0 46 52" fill="none" stroke="#4FA8A0" stroke-width="6" stroke-linecap="square"/>
+          <rect x="26" y="26" width="12" height="12" fill="#C9A227"/>
+        </svg>
+        <div class="land-kicker" style="margin-bottom:0;">COREFORGE STUDIO</div>
+      </div>
+      <h1>Describe your project. Get a real backend to <em>start</em> from.</h1>
+      <div class="cap-row">
+        <span class="cap-pill"><svg width="13" height="13" viewBox="0 0 18 18"><path d="M9 2 L16 6 L9 10 L2 6 Z" fill="none" stroke="#4FA8A0" stroke-width="1.5"/><path d="M2 9.5 L9 13.5 L16 9.5" fill="none" stroke="#4FA8A0" stroke-width="1.5"/></svg>Six stacks</span>
+        <span class="cap-pill"><svg width="13" height="13" viewBox="0 0 18 18"><ellipse cx="9" cy="4.5" rx="6" ry="2.2" fill="none" stroke="#C9A227" stroke-width="1.5"/><path d="M3 4.5 V13.5 A6 2.2 0 0 0 15 13.5 V4.5" fill="none" stroke="#C9A227" stroke-width="1.5"/><path d="M3 9 A6 2.2 0 0 0 15 9" fill="none" stroke="#C9A227" stroke-width="1.5"/></svg>Four databases</span>
+        <span class="cap-pill"><svg width="13" height="13" viewBox="0 0 18 18"><path d="M4 8 A5.5 5.5 0 0 1 14.2 5.6" fill="none" stroke="#4FA8A0" stroke-width="1.6"/><path d="M11.6 4.6 L14.4 5.7 L13.3 8.5" fill="none" stroke="#4FA8A0" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 10 A5.5 5.5 0 0 1 3.8 12.4" fill="none" stroke="#4FA8A0" stroke-width="1.6"/><path d="M6.4 13.4 L3.6 12.3 L4.7 9.5" fill="none" stroke="#4FA8A0" stroke-width="1.6" stroke-linejoin="round"/></svg>Refine loop</span>
+        <span class="cap-pill"><svg width="13" height="13" viewBox="0 0 18 18"><rect x="3" y="5" width="12" height="9.5" rx="1" fill="none" stroke="#C9A227" stroke-width="1.5"/><line x1="9" y1="5" x2="9" y2="14.5" stroke="#C9A227" stroke-width="1.5" stroke-dasharray="1.6 1.6"/></svg>ZIP export</span>
+      </div>
+      <div class="cta-row">
+        <button class="cta-primary" id="loginBtn">Log in</button>
+        <button class="cta-secondary" id="guestBtn">Continue as guest</button>
+      </div>
+      <div class="honesty-line">
+        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="#8B92A3" stroke-width="1.3"/><line x1="6.5" y1="6" x2="6.5" y2="9.5" stroke="#8B92A3" stroke-width="1.3"/><circle cx="6.5" cy="3.8" r="0.8" fill="#8B92A3"/></svg>
+        <span>Log in reads your existing claude.ai identity — no separate password. Guests get the same tool, just no name on the badge.</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="preview-card">
+        <div class="typewriter-line" id="typeLine"><span class="cursor"></span></div>
+        <div class="chip-row" id="chipRow"></div>
+        <div class="pc-tree" id="pcTree"></div>
+        <div class="pc-caption" id="pcCaption">Example file layout — shown for illustration, your real output depends on your description.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps-block reveal">
+    <div class="section-head">
+      <svg width="17" height="17" viewBox="0 0 18 18"><circle cx="3" cy="14.5" r="1.6" fill="#4FA8A0"/><circle cx="9" cy="8" r="1.6" fill="#4FA8A0"/><circle cx="15" cy="3.5" r="1.6" fill="#4FA8A0"/><path d="M3 14.5 L9 8 L15 3.5" fill="none" stroke="#4FA8A0" stroke-width="1.3" stroke-dasharray="1.8 2"/></svg>
+      <h2>How it works</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><p>Describe what your project does, in your own words.</p></div>
+      <div class="step"><span class="n">02</span><p>Pick a stack, a database, and the features you need.</p></div>
+      <div class="step"><span class="n">03</span><p>Claude writes the files and shows you exactly what it built.</p></div>
+      <div class="step"><span class="n">04</span><p>Ask for changes, then download the project as a ZIP.</p></div>
+    </div>
+  </div>
+
+  <div class="get-block">
+    <div class="section-head reveal">
+      <svg width="16" height="16" viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="5.5" height="5.5" fill="#C9A227"/><rect x="10" y="2.5" width="5.5" height="5.5" fill="none" stroke="#C9A227" stroke-width="1.4"/><rect x="2.5" y="10" width="5.5" height="5.5" fill="none" stroke="#C9A227" stroke-width="1.4"/><rect x="10" y="10" width="5.5" height="5.5" fill="#C9A227"/></svg>
+      <h2>What you get</h2>
+    </div>
+    <div class="get-grid reveal" id="getGrid">
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><path d="M9 2 L16 6 L9 10 L2 6 Z" fill="none" stroke="#4FA8A0" stroke-width="1.5"/><path d="M2 9.5 L9 13.5 L16 9.5" fill="none" stroke="#4FA8A0" stroke-width="1.5"/></svg><b>Six backend stacks</b><span>Express, NestJS, FastAPI, Django, Spring Boot, Fiber.</span></div>
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><ellipse cx="9" cy="4.5" rx="6" ry="2.2" fill="none" stroke="#C9A227" stroke-width="1.5"/><path d="M3 4.5 V13.5 A6 2.2 0 0 0 15 13.5 V4.5" fill="none" stroke="#C9A227" stroke-width="1.5"/><path d="M3 9 A6 2.2 0 0 0 15 9" fill="none" stroke="#C9A227" stroke-width="1.5"/></svg><b>Four databases</b><span>PostgreSQL, MongoDB, MySQL, SQLite.</span></div>
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><rect x="2" y="6.5" width="14" height="6" rx="3" fill="none" stroke="#4FA8A0" stroke-width="1.5"/><circle cx="12" cy="9.5" r="2.1" fill="#4FA8A0"/></svg><b>Optional add-ons</b><span>Auth, validation, error handling, Docker, tests.</span></div>
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><path d="M4 8 A5.5 5.5 0 0 1 14.2 5.6" fill="none" stroke="#C9A227" stroke-width="1.6"/><path d="M11.6 4.6 L14.4 5.7 L13.3 8.5" fill="none" stroke="#C9A227" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 10 A5.5 5.5 0 0 1 3.8 12.4" fill="none" stroke="#C9A227" stroke-width="1.6"/><path d="M6.4 13.4 L3.6 12.3 L4.7 9.5" fill="none" stroke="#C9A227" stroke-width="1.6" stroke-linejoin="round"/></svg><b>Refine, not restart</b><span>Ask for a change and get the full updated set.</span></div>
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="none" stroke="#4FA8A0" stroke-width="1.5"/><path d="M9 5.5 V9 L11.8 10.6" fill="none" stroke="#4FA8A0" stroke-width="1.5" stroke-linecap="round"/></svg><b>Local history</b><span>Recent generations saved to this browser.</span></div>
+      <div class="get-card"><svg width="20" height="20" viewBox="0 0 18 18"><rect x="3" y="4.5" width="12" height="10" rx="1" fill="none" stroke="#C9A227" stroke-width="1.5"/><line x1="9" y1="4.5" x2="9" y2="14.5" stroke="#C9A227" stroke-width="1.5" stroke-dasharray="1.6 1.6"/></svg><b>ZIP export</b><span>Ready to unzip and commit to a repo.</span></div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="app">
+<header>
+  <div class="brand brand-row">
+    <svg class="logo-mark" width="30" height="30" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M46 12 A24 24 0 1 0 46 52" fill="none" stroke="#4FA8A0" stroke-width="6" stroke-linecap="square"/>
+      <rect x="26" y="26" width="12" height="12" fill="#C9A227"/>
+    </svg>
+    <div>
+      <h1>CoreForge <span>Studio</span></h1>
+      <p>Describe your project, pick a stack, get a working backend.</p>
+    </div>
+  </div>
+  <div class="identity" id="identity">
+    <img class="avatar" id="avatarImg" alt="">
+    <div class="who"><b id="whoName">Guest</b><small id="whoSub"></small></div>
+  </div>
+</header>
+<div class="stat-strip">
+  <span><b>6</b> stacks</span>
+  <span><b>4</b> databases</span>
+  <span><b>ZIP</b> export, GitHub-ready</span>
+  <span><b>0</b> setup required</span>
+</div>
+<main>
+  <section class="panel" id="configPanel">
+    <label for="desc">Project description</label>
+    <textarea id="desc" placeholder="e.g. A task management app where users can create boards, add tasks with due dates, assign teammates, and comment on tasks."></textarea>
+
+    <label>Tech stack</label>
+    <div class="stack-grid" id="stackGrid"></div>
+
+    <label>Features to include</label>
+    <div class="feat-list" id="featList"></div>
+
+    <label for="dbchoice">Database</label>
+    <select id="dbchoice">
+      <option value="PostgreSQL">PostgreSQL</option>
+      <option value="MongoDB">MongoDB</option>
+      <option value="MySQL">MySQL</option>
+      <option value="SQLite">SQLite (dev/local)</option>
+    </select>
+
+    <button class="primary" id="genBtn">Generate backend</button>
+    <div class="status" id="status"></div>
+
+    <div class="history">
+      <h3>Recent generations — saved on this device</h3>
+      <div id="historyList"><div class="hist-empty">Nothing yet.</div></div>
+    </div>
+  </section>
+
+  <section class="panel output-panel" id="outputPanel">
+    <div class="empty" id="emptyState">
+      <svg class="logo-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <path d="M46 12 A24 24 0 1 0 46 52" fill="none" stroke="#4FA8A0" stroke-width="6" stroke-linecap="square"/>
+        <rect x="26" y="26" width="12" height="12" fill="#C9A227"/>
+      </svg>
+      <div>Your generated backend will appear here.<br>Fill in the form and hit <strong>Generate backend</strong>.</div>
+    </div>
+    <div id="resultView" style="display:none; flex:1; flex-direction:column;">
+      <div class="tabs" id="tabs"></div>
+      <div class="code-wrap"><pre id="codeView"></pre></div>
+      <div class="refine">
+        <input type="text" id="refineInput" placeholder="Ask for a change, e.g. 'add password reset' or 'switch to MongoDB'">
+        <button class="ghost" id="refineBtn">Refine</button>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="copyBtn">Copy file</button>
+        <button class="ghost" id="downloadBtn">Download file</button>
+        <button class="ghost" id="downloadZipBtn">Download ZIP</button>
+        <button class="ghost" id="newBtn">New project</button>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>Generated code is a starting point — review before deploying.</footer>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const STACKS = [
+  {id:'node-express', name:'Node.js', sub:'Express + JS'},
+  {id:'node-nest', name:'NestJS', sub:'Node + TypeScript'},
+  {id:'python-fastapi', name:'FastAPI', sub:'Python'},
+  {id:'python-django', name:'Django', sub:'Python (batteries incl.)'},
+  {id:'spring-boot', name:'Spring Boot', sub:'Java'},
+  {id:'go-fiber', name:'Fiber', sub:'Go'},
+];
+const FEATURES = [
+  {id:'auth', label:'Authentication (JWT)'},
+  {id:'crud', label:'CRUD endpoints for core entities'},
+  {id:'validation', label:'Input validation'},
+  {id:'errors', label:'Centralized error handling'},
+  {id:'docker', label:'Dockerfile + compose'},
+  {id:'tests', label:'Basic tests'},
+];
+const ICONS = {js:'JS',ts:'TS',py:'PY',java:'JV',go:'GO',json:'{}',md:'MD',yml:'YM',yaml:'YM',env:'EN',dockerfile:'DK',sql:'SQL',html:'HT'};
+function iconFor(name){
+  const base = name.split('/').pop().toLowerCase();
+  if(base.startsWith('dockerfile')) return 'DK';
+  const ext = base.split('.').pop();
+  return ICONS[ext] || '·';
+}
+
+let selectedStack = STACKS[0].id;
+const stackGrid = document.getElementById('stackGrid');
+STACKS.forEach(s=>{
+  const el = document.createElement('div');
+  el.className = 'stack-opt' + (s.id===selectedStack?' active':'');
+  el.innerHTML = `<span class="name">${s.name}</span><span class="sub">${s.sub}</span>`;
+  el.onclick = ()=>{ selectedStack=s.id; document.querySelectorAll('.stack-opt').forEach(x=>x.classList.remove('active')); el.classList.add('active'); };
+  stackGrid.appendChild(el);
+});
+const featList = document.getElementById('featList');
+FEATURES.forEach(f=>{
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" value="${f.id}" ${['auth','crud','errors'].includes(f.id)?'checked':''}> ${f.label}`;
+  featList.appendChild(lab);
+});
+
+// ---- Landing preview card: stack chips + example file tree ----
+const STACK_TREES = {
+  'node-express': ['server.js','routes/tasks.routes.js','models/task.model.js','middleware/auth.js','package.json','README.md'],
+  'node-nest': ['src/main.ts','src/tasks/tasks.controller.ts','src/tasks/tasks.service.ts','src/auth/auth.module.ts','package.json','README.md'],
+  'python-fastapi': ['main.py','routers/tasks.py','models.py','schemas.py','requirements.txt','README.md'],
+  'python-django': ['manage.py','app/models.py','app/views.py','app/urls.py','requirements.txt','README.md'],
+  'spring-boot': ['src/.../TaskController.java','src/.../TaskService.java','src/.../Task.java','pom.xml','README.md'],
+  'go-fiber': ['main.go','handlers/tasks.go','models/task.go','go.mod','README.md'],
+};
+const chipRow = document.getElementById('chipRow');
+const pcTree = document.getElementById('pcTree');
+function showTree(stackId){
+  pcTree.innerHTML = '';
+  (STACK_TREES[stackId]||[]).forEach((f,i)=>{
+    const d = document.createElement('div');
+    d.textContent = f;
+    d.style.animationDelay = (i*0.06)+'s';
+    pcTree.appendChild(d);
+  });
+}
+STACKS.forEach((s,i)=>{
+  const c = document.createElement('div');
+  c.className = 'chip' + (i===0?' active':'');
+  c.textContent = s.name;
+  c.onclick = ()=>{ document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); c.classList.add('active'); showTree(s.id); };
+  chipRow.appendChild(c);
+});
+showTree(STACKS[0].id);
+
+const EXAMPLES = [
+  'A task board where teams create projects, assign tasks, and track due dates.',
+  'An inventory tracker for a small warehouse with stock alerts.',
+  'A booking system for a yoga studio with class schedules and waitlists.',
+];
+(function typewriterLoop(){
+  const el = document.getElementById('typeLine');
+  if(!el) return;
+  let exIdx = 0, chIdx = 0, deleting = false;
+  function tick(){
+    const full = EXAMPLES[exIdx];
+    chIdx += deleting ? -1 : 1;
+    el.innerHTML = full.slice(0, chIdx) + '<span class="cursor"></span>';
+    let delay = deleting ? 22 : 32;
+    if(!deleting && chIdx === full.length){ delay = 1800; deleting = true; }
+    else if(deleting && chIdx === 0){ deleting = false; exIdx = (exIdx+1) % EXAMPLES.length; delay = 400; }
+    setTimeout(tick, delay);
+  }
+  tick();
+})();
+
+function toast(msg, isErr){
+  const box = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast' + (isErr?' err':'');
+  t.textContent = msg;
+  box.appendChild(t);
+  setTimeout(()=>{ t.remove(); }, 3200);
+}
+
+let files = [];
+let activeFile = null;
+let lastPrompt = null;
+let turns = [];
+let sampleFn = null, downloadsCap = null;
+
+function useCapability(name){
+  try{
+    if(typeof claude !== 'undefined' && claude && typeof claude.use === 'function'){
+      return claude.use(name);
+    }
+  }catch(e){}
+  return Promise.resolve(null);
+}
+const hasRuntime = (typeof claude !== 'undefined');
+
+useCapability('sample').then(s=>{ sampleFn = s; }).catch(()=>{});
+useCapability('downloads').then(d=>{ downloadsCap = d; }).catch(()=>{});
+
+function enterApp(){
+  const landing = document.querySelector('.land-bg');
+  const app = document.getElementById('app');
+  landing.classList.add('leaving');
+  setTimeout(()=>{
+    landing.style.display = 'none';
+    app.style.display = 'block';
+    app.classList.add('entering');
+    setTimeout(()=> app.classList.remove('entering'), 600);
+  }, 380);
+}
+function setGuestBadge(){
+  document.getElementById('whoName').textContent = 'Guest';
+  document.getElementById('whoSub').textContent = 'history saved on this device only';
+}
+document.getElementById('guestBtn').addEventListener('click', ()=>{
+  setGuestBadge();
+  enterApp();
+});
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const u = await useCapability('user');
+    if(!u){ setGuestBadge(); toast("Couldn't verify an account here — continuing as guest.", true); enterApp(); return; }
+    const me = await u.me();
+    document.getElementById('avatarImg').src = me.avatarUrl;
+    if(me.id){
+      document.getElementById('whoName').textContent = me.name || 'Signed in';
+      document.getElementById('whoSub').textContent = 'signed in via claude.ai';
+      toast('Signed in as ' + (me.name || 'you') + '.');
+    }else{
+      setGuestBadge();
+      toast('No organization identity here — continuing as guest.');
+    }
+  }catch(e){
+    setGuestBadge();
+    toast("Login isn't available here — continuing as guest.", true);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Log in';
+    enterApp();
+  }
+});
+
+// ---- History (per-device, localStorage) ----
+const HIST_KEY = 'backend_forge_history_v1';
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); }catch(e){ return []; }
+}
+function saveHistory(list){
+  try{ localStorage.setItem(HIST_KEY, JSON.stringify(list.slice(0,12))); }catch(e){}
+}
+function renderHistory(){
+  const wrap = document.getElementById('historyList');
+  const list = loadHistory();
+  if(!list.length){ wrap.innerHTML = '<div class="hist-empty">Nothing yet.</div>'; return; }
+  wrap.innerHTML = '';
+  list.forEach((item,i)=>{
+    const row = document.createElement('div');
+    row.className = 'hist-item';
+    const b = document.createElement('button');
+    b.textContent = (item.desc.slice(0,42) || 'Untitled') + (item.desc.length>42?'…':'');
+    b.title = item.desc;
+    b.onclick = ()=>{ restoreHistory(item); };
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.4"/><line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.4"/></svg>';
+    del.onclick = (e)=>{ e.stopPropagation(); const l = loadHistory(); l.splice(i,1); saveHistory(l); renderHistory(); };
+    row.appendChild(b); row.appendChild(del);
+    wrap.appendChild(row);
+  });
+}
+function restoreHistory(item){
+  files = item.files; activeFile = files[0].name; turns = item.turns || [];
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultView').style.display = 'flex';
+  renderTabs(); renderCode();
+  setStatus('Restored from history.');
+}
+renderHistory();
+
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); }, 850);
+});
+if('IntersectionObserver' in window){
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){ en.target.classList.add('in-view'); io.unobserve(en.target); }
+    });
+  }, {threshold:0.2});
+  document.querySelectorAll('.reveal').forEach(el=> io.observe(el));
+}else{
+  document.querySelectorAll('.reveal').forEach(el=> el.classList.add('in-view'));
+}
+
+const orb1 = document.getElementById('orb1'), orb2 = document.getElementById('orb2');
+if(orb1 && orb2){
+  document.addEventListener('scroll', ()=>{
+    const y = window.scrollY;
+    orb1.style.transform = `translateY(${y*0.12}px)`;
+    orb2.style.transform = `translateY(${y*0.22}px)`;
+  }, {passive:true});
+}
+
+function setStatus(t){ document.getElementById('status').textContent = t; }
+function renderTabs(){
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  files.forEach(f=>{
+    const t = document.createElement('div');
+    t.className = 'tab' + (f.name===activeFile?' active':'');
+    t.innerHTML = `<span class="ico">${iconFor(f.name)}</span><span>${f.name}</span>`;
+    t.onclick = ()=>{ activeFile = f.name; renderTabs(); renderCode(); };
+    tabs.appendChild(t);
+  });
+}
+function renderCode(){
+  const f = files.find(x=>x.name===activeFile);
+  document.getElementById('codeView').textContent = f ? f.content : '';
+}
+
+function buildPrompt(desc, stack, db, feats){
+  return `You are a senior backend engineer. Generate a working backend project skeleton.
+
+Project description: ${desc}
+Stack: ${stack.name} (${stack.sub})
+Database: ${db}
+Requested features: ${feats.join(', ') || 'basic CRUD only'}
+
+Return ONLY valid JSON, no markdown fences, no commentary, matching exactly this shape:
+{"files":[{"name":"relative/path/like/this.ext","content":"full file content as a string, with real newlines escaped as \\n"}], "summary":"one or two sentence summary of what was generated"}
+
+Include a README.md, dependency manifest (package.json/requirements.txt/pom.xml/go.mod as appropriate), the main app entrypoint, route/controller files, a model/schema file, and a Dockerfile if requested. Keep each file focused and realistic, not placeholder stubs. 4 to 9 files total.`;
+}
+
+const STEPS = ['Analyzing project…','Scaffolding structure…','Writing models & routes…','Finishing up…'];
+function runProgress(){
+  let i = 0;
+  setStatus(STEPS[0]);
+  return setInterval(()=>{ i = (i+1) % STEPS.length; setStatus(STEPS[i]); }, 1800);
+}
+
+async function generate(promptTurns){
+  if(!sampleFn){ toast("AI generation isn't available in this view.", true); return null; }
+  const timer = runProgress();
+  let charCount = 0;
+  try{
+    const result = await sampleFn.json(promptTurns, {
+      modelTier:'complex',
+      onText: ({text})=>{ charCount = text.length; setStatus(`Writing files… ${charCount} chars`); }
+    });
+    clearInterval(timer);
+    if(!result || !Array.isArray(result.files) || result.files.length===0) throw new Error('empty');
+    return result;
+  }catch(e){
+    clearInterval(timer);
+    setStatus('');
+    toast('Generation failed — try again or simplify the request.', true);
+    return null;
+  }
+}
+
+document.getElementById('genBtn').addEventListener('click', async ()=>{
+  const desc = document.getElementById('desc').value.trim();
+  if(!desc){ toast('Describe your project first.', true); return; }
+  const feats = Array.from(document.querySelectorAll('.feat-list input:checked')).map(i=>i.value);
+  const db = document.getElementById('dbchoice').value;
+  const stack = STACKS.find(s=>s.id===selectedStack);
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  const prompt = buildPrompt(desc, stack, db, feats);
+  const result = await generate(prompt);
+  btn.disabled = false;
+  if(!result) return;
+  files = result.files; activeFile = files[0].name;
+  turns = [{role:'user', content: prompt}, {role:'assistant', content: JSON.stringify(result)}];
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultView').style.display = 'flex';
+  renderTabs(); renderCode();
+  setStatus(result.summary || 'Done.');
+  const hist = loadHistory();
+  hist.unshift({desc, files, turns, ts: Date.now()});
+  saveHistory(hist); renderHistory();
+});
+
+document.getElementById('refineBtn').addEventListener('click', async ()=>{
+  const ask = document.getElementById('refineInput').value.trim();
+  if(!ask){ toast('Describe the change you want.', true); return; }
+  if(!turns.length){ toast('Generate a backend first.', true); return; }
+  const btn = document.getElementById('refineBtn');
+  btn.disabled = true;
+  const followUp = `Apply this change to the project: ${ask}\n\nReturn the FULL updated file set as the same JSON shape as before (all files, not just the changed ones).`;
+  const promptTurns = [...turns, {role:'user', content: followUp}];
+  const result = await generate(promptTurns);
+  btn.disabled = false;
+  if(!result) return;
+  files = result.files; activeFile = files[0].name;
+  turns = [...promptTurns, {role:'assistant', content: JSON.stringify(result)}];
+  renderTabs(); renderCode();
+  setStatus(result.summary || 'Updated.');
+  document.getElementById('refineInput').value = '';
+  toast('Backend updated.');
+});
+
+document.getElementById('newBtn').addEventListener('click', ()=>{
+  files = []; activeFile = null; turns = [];
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('resultView').style.display = 'none';
+  document.getElementById('desc').value = '';
+  setStatus('');
+});
+
+document.getElementById('copyBtn').addEventListener('click', async ()=>{
+  const f = files.find(x=>x.name===activeFile);
+  if(!f) return;
+  try{ await navigator.clipboard.writeText(f.content); toast('Copied ' + f.name); }
+  catch(e){ toast('Copy failed.', true); }
+});
+document.getElementById('downloadBtn').addEventListener('click', async ()=>{
+  const f = files.find(x=>x.name===activeFile);
+  if(!f || !downloadsCap){ toast('Downloads unavailable here.', true); return; }
+  try{ await downloadsCap.save({filename:f.name.replace(/\//g,'_'), data:f.content}); toast('Saved ' + f.name); }
+  catch(e){ toast('Download declined or failed.', true); }
+});
+document.getElementById('downloadZipBtn').addEventListener('click', async ()=>{
+  if(!files.length || !downloadsCap){ toast('Downloads unavailable here.', true); return; }
+  if(typeof JSZip === 'undefined'){ toast('ZIP library failed to load.', true); return; }
+  try{
+    const zip = new JSZip();
+    files.forEach(f=> zip.file(f.name, f.content));
+    const blob = await zip.generateAsync({type:'blob'});
+    await downloadsCap.save({filename:'backend-project.zip', data: blob});
+    toast('ZIP saved — ready to push to GitHub.');
+  }catch(e){ toast('ZIP export failed.', true); }
+});
+</script>
+</body>
+</html>
